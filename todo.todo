@@ -1,0 +1,118 @@
+#                      .:AIM:.
+#1.Start kommandi va user bn salomlashish
+#----------------------------------------------------------------------------------+
+#2. /help  info about bot                                                          |
+#----------------------------------------------------------------------------------+
+#3. /myusernames                                                                   |
+#       /myusernames da ozini username , Kanla username , bot usernam va harburini narxi korsatilgan boladi username ni oldida|  
+#       habarda username lar 4 turga bolingan boladi Group / Chanel / Bot / Mine   |
+#----------------------------------------------------------------------------------+
+# /newusername kommandi                                                            |
+#    Reply keyboard markup  3ta.                                                   |
+#       1-si My username                                                           |
+#       2-si Channel Username                                                      |
+#       4-si guruh username                                                        |
+#       3-si Bot username                                                          |
+#   Agar My username bo'lsa  o'zini username ni royxatga qoshadi va congrats mess  |
+#   Agar 2-si bo'lsa kanal username ni soraydi                                     |
+#       Admin qilib qoyishni soraydi                                               |
+#           Bot Kanal username kiritilgan username bilan birxil yoki yoqligini,    |     
+#           Nechta odam borligini hisoblash                                        |
+#      Kanalni lvlin sorash                                                        |
+#      userni ID va usernameni olib   kanalni ownerini username va ID siga solish- |
+#      tirish agar mos tushsa davom et aks holda reject message va stop            |
+# Va nihoyat userdan username ni narxini sorash                                    |
+#unda to'lov TON da bolishini ham ogohlantirib qoyiladi                            |
+# bu barcha malumotlar {userni username}.txt filega saqlanadi                      |
+#----------------------------------------------------------------------------------+
+# /edit bu kommand da agar user username ni sotuvga qoygan bolsa                   |
+#   undan qaysi username haqida gi malumotni ozgartirmoqchiligin soraydi va        |
+# shu habar ostida inline keyboard button larda username lar yozilgan boladi userga|
+# tegishli . keyin 2 ta inline keyboard btn da Tanlashni soraydi 2 ta btn da 1 tasi|
+# ni 1 - btn da "Delete username"  2 - btn da "Edit Price"                         |
+# agar user 1 - btn ni bossa anashu tanlangan username ni ochirib tashlaydi        |
+# agar user 2 - btn ni bossa anashu username ga yangi narx ni user qoyadi          |
+#----------------------------------------------------------------------------------+
+# /username commandi bu kommand boshqa userlar tomonidan sotishga qoyilgan username|
+# lar ro'yxatini taqdim etadi bu royxat 4 qisimga bolingan boladi                  |
+# 1 - usernames    2 - Channels     3 - Groups   4 - Bot                           |
+#  va harbir username yoniga  status ni korsatib turadi  "On sale" / "Sold"        |
+# va habar ostida inline btn boladi va uni nomi "Buy"                              |
+# agar Buy bosilas                                                                 |
+#   unga habar jonatiladi habarda:                                                 |
+#      Secure and Anonymous Purchases of Usernames, Channels, and Groups           |
+#       Experience reliable and secure transactions with us.                       |
+#       Enjoy complete anonymity and confidence in every trade.                    |
+#                                                                                  |
+#       Please Choose one username you want to purchase                            |
+#                                                                                  |
+#   undan keyin anashu user jonatgan username agar royxatda bo'lsa unga anashu     |
+# username haqida malumot beradi. agar profile username bolsa unga faqat uni narxini|
+# va status va nomini jo'natadi. agar chanel yoki group bo'lsa unga qancha obunachi|
+# si borligini kanalni / guruhni lvl ni  unga jonatadi  va unga unique key beradi |
+# va anashu keyni yangi transactions.db ga saqalanadi. user's username ID & uniq  |
+# key bilan                                                                       |  
+# Kimdir qaysidir username yoki chanel / groupni sotib olmoqchi bolsa anashu ni   |
+# egasiga habar yuboriladi sizni {username or chanel/group} izni sotib olishmoqchi|
+# degan ma'noda habar yuboriladi.  Agar username ni sotib olmoqchi bolgan user    |
+# korsatilgan  summani tolasa ( buni admin tomonidan tasdiqlanadi)                |
+# username ni egasiga shunga oxshash manoda habar jonatiladi:                     |
+# Siz sotuvga qoygan {username / chanel / group}  uchun tolov qilindi             |
+# siz shu @ablaze_coder ga {username / chanel / group} ni egaligini otkazganingiz |
+# dan song sizga tolovni amalga oshiramiz                                         |
+# agar user egaligni otkazsa (admin tomonidan tasdiqlanadi) undan wallet manzilni |
+# soraydi va (admin tomonidan tolov amalga oshiriladi)                            |
+# hamda unga @ablaze_coder ga ozingiz haqingizda malumot yuboring va u sizga      |
+# tolovni amalga oshirib  beradi           degan mazmunda habar jonatiladi        |
+# agar shu narsalar toliq amalga oshirib bolinsa anashu sotilgan username / chanel|
+# / group statusi Sold ga ozgaradi                                                |
+#---------------------------------------------------------------------------------+
+# admin panel                                                                     |
+# admin panelga kirish uchun /admin kommandi ishlatiladi user admin ekanligini bil|
+# ish uchun admins degan royxatdan anashu userni ID qaraladi agar userni ID anashu|
+# royxatda bolsa u admin panel ga kira oladi aks hold "? Unknown Command ?"       |
+# degan habar oladi                                                               |
+# admin panelda barcha username /group/chanel lar royxatini ozgartirishga ruxsat  |
+# boladi . admin /edit commandi bilan istalgan usernamni ozgartira oladi statusni |
+# HAM.va admin ga bu botni ishlatayotgan barcha userlar royxati ham taqdim etiladi|
+# /admin_edit commandi yordamida bunda ham userni admins royxatida bor yoq ekanlig|
+# ini tekshiriladi. transactions.db dagi malumotlar ham admin ga taqdim etiladi   |
+# admin kommandi ishlatilganda                                                    |
+#---------------------------------------------------------------------------------+ 
+
+
+
++-----------------------------------------------------------------------------------------------+
+| /start - Welcome to Our Bot!                                                                  |
+| Easily buy or sell channels and groups with confidence.                                       |
+| Trusted by 1,400 users,                                                                       |
+| our bot has facilitated nearly 100 successful trades.                                         |
+| You can securely transact using TON, with $BLAZE support coming soon.                         |
+| If you need assistance, simply send the /help command.                                        |
++-----------------------------------------------------------------------------------------------+
+| /help - Here is available commands:                                                           |
+| /start - start bot                                                                            |
+| /myusernames - View Your Listed Usernames                                                     |
+| /newusername - List Your Channel or Group for Sale                                            |
+| /edit - edit your channel/group info                                                          |
+| /username - Browse Channels and Groups for Sale                                               |
++-----------------------------------------------------------------------------------------------+
+| /edit -  Your Usernames:                                                                      |
+| username        price      STATUS (On Sale / Sold)                                            |
+|AND HERE IS THE LIST OF USER'S CHANNEL/GROUP/BOT                                               |   
+| at the end of the message there is 2 inline keyboard buttons. 1-Delete one 2-edit             |
+| when user chose 1 the bot asks which CHANNEL/GROUP/BOT you want to Delete.                    |
+| va foydalanuvchi unga ochirib tashlamoqchi bolgan usernameni tanlaydi va anashu username      |
+| barcha u saqlangan fillardan ochib ketishi kerak                                              |
+| Agar user 2-tanlasa undan 1 ta username ni tanlash soraydi va user anashu username ni jonatadi|
+| va bot username unga tegishli ekanligini tekshiradi agar uniki bolsa unga shablon beriladi    |
+| qanday edit qilishni korstish uchun . Shablon:"price/status" va userni tashlagan yangi narxni |
+| va status ni barcha anashu kanal/guruh/bot saqalangan fillardan anashu user jonatgan narx va  |
+| status ni update qiladi status 2 xil boladi "On Sale" "Sold"                                  |
++-----------------------------------------------------------------------------------------------+
+| /username - bu kommand barcha username lar royxatini chiqaradi                                |
+| barcha u tashlaydigan malummot ni 3 ga bolingan xolda tashlaydi Channels / Groups / Bots      |
+|BU MALumotlarni usernames/groups & channels & bots folderlaridan bot.txt & channel.txt & groups.txt|
+| filelaridan oladi va userga taqdim etadi.va habar oxirida "Buy" nomli inline keyboard btn si boladi|
+| user yuqorida korsatilgan tartibda usernameni sotib oladi                                     |
++-----------------------------------------------------------------------------------------------+
