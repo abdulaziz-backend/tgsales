@@ -17,6 +17,9 @@ async def is_owner(bot: Bot, username: str, user_id: int) -> bool:
         print(f"Failed to check ownership: {e}")
         return False
 
+
+
+#===============SHETTA getr_chat_member da qandaydir xatolik beryapti, togirlay olmadim===========================#
 async def is_bot_admin(bot: Bot, username: str) -> bool:
     try:
         chat_member = await bot.get_chat_member(username, bot.id)
