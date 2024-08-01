@@ -13,7 +13,7 @@ class SellState(StatesGroup):
     waiting_for_type = State()
     waiting_for_username = State()
     waiting_for_price = State()
-    waiting_for_agreement = State()  # New state for terms of use agreement
+    waiting_for_agreement = State()  
 
 @router.message(Command("start"))
 async def start_command(message: Message, state: FSMContext):
