@@ -1,82 +1,57 @@
+import sqlite3
 import os
 
-def save_user_to_file(username: str, user_id: int):
-    user_folder = f'data/users/{user_id}'
-    os.makedirs(user_folder, exist_ok=True)
-    file_path = os.path.join(user_folder, f'{user_id}.txt')
-    with open(file_path, 'w') as file:
-        file.write(f"Username: {username}\n")
-        file.write(f"User ID: {user_id}\n")
+def ensure_directory_exists(directory):
+    if not os.path.exists(directory):
+        os.makedirs(directory)
 
-def save_channel_info(user_id: int, channel_username: str, subscriber_count: int):
-    user_folder = f'data/users/{user_id}'
-    os.makedirs(user_folder, exist_ok=True)
-    file_path = os.path.join(user_folder, f'{user_id}.txt')
-    with open(file_path, 'a') as file:
-        file.write(f"Channel: {channel_username}\n")
-        file.write(f"Subscribers: {subscriber_count}\n")
+def save_user_data(user_id, username):
+    user_data_path = f"data/users/{user_id}.sqlite"
+    ensure_directory_exists("data/users")
+    conn = sqlite3.connect(user_data_path)
+    cursor = conn.cursor()
+    cursor.execute('''CREATE TABLE IF NOT EXISTS users (id INTEGER PRIMARY KEY, username TEXT)''')
+    cursor.execute('''INSERT OR IGNORE INTO users (id, username) VALUES (?, ?)''', (user_id, username))
+    conn.commit()
+    conn.close()
 
-    os.makedirs('data/usernames/channels', exist_ok=True)
-    with open('data/usernames/channels/channel.txt', 'a') as file:
-        file.write(f"{channel_username}, Price: [Not set yet], Subscribers: {subscriber_count}\n")
-
-def save_group_info(user_id: int, group_username: str, subscriber_count: int):
-    user_folder = f'data/users/{user_id}'
-    os.makedirs(user_folder, exist_ok=True)
-    file_path = os.path.join(user_folder, f'{user_id}.txt')
-    with open(file_path, 'a') as file:
-        file.write(f"Group: {group_username}\n")
-        file.write(f"Subscribers: {subscriber_count}\n")
-
-    os.makedirs('data/usernames/groups', exist_ok=True)
-    with open('data/usernames/groups/groups.txt', 'a') as file:
-        file.write(f"{group_username}, Price: [Not set yet], Subscribers: {subscriber_count}\n")
-
-def save_bot_info(user_id: int, bot_username: str, subscriber_count: int):
-    user_folder = f'data/users/{user_id}'
-    os.makedirs(user_folder, exist_ok=True)
-    file_path = os.path.join(user_folder, f'{user_id}.txt')
-    with open(file_path, 'a') as file:
-        file.write(f"Bot: {bot_username}\n")
-        file.write(f"Subscribers: {subscriber_count}\n")
-
-    os.makedirs('data/usernames/bots', exist_ok=True)
-    with open('data/usernames/bots/bots.txt', 'a') as file:
-        file.write(f"{bot_username}, Price: [Not set yet], Subscribers: {subscriber_count}\n")
-
-def get_user_info(user_id: int) -> str:
-    user_folder = f'data/users/{user_id}'
-    file_path = os.path.join(user_folder, f'{user_id}.txt')
-    if os.path.exists(file_path):
-        with open(file_path, 'r') as file:
-            return file.read()
-    return ""
-
-def edit_info(user_id: int, edit_choice: str, new_info: str):
-    user_folder = f'data/users/{user_id}'
-    file_path = os.path.join(user_folder, f'{user_id}.txt')
-    if os.path.exists(file_path):
-        with open(file_path, 'r') as file:
-            lines = file.readlines()
-        with open(file_path, 'w') as file:
-            for line in lines:
-                if edit_choice.lower() in line.lower():
-                    file.write(f"{edit_choice}: {new_info}\n")
-                else:
-                    file.write(line)
+def save_listing(sell_type, username, user_id, price, subscriber_count):
+    if sell_type == "Channel":
+        folder_name = "data/channels"
+    elif sell_type == "Group":
+        folder_name = "data/groups"
+    elif sell_type == "Bot":
+        folder_name = "data/bots"
     else:
-        raise FileNotFoundError(f"No data found for user {user_id}")
+        raise ValueError("Invalid sell type")
 
-def delete_info(user_id: int, delete_choice: str):
-    user_folder = f'data/users/{user_id}'
-    file_path = os.path.join(user_folder, f'{user_id}.txt')
-    if os.path.exists(file_path):
-        with open(file_path, 'r') as file:
-            lines = file.readlines()
-        with open(file_path, 'w') as file:
-            for line in lines:
-                if delete_choice.lower() not in line.lower():
-                    file.write(line)
-    else:
-        raise FileNotFoundError(f"No data found for user {user_id}")
+    ensure_directory_exists(folder_name)
+    
+    conn = sqlite3.connect(f"{folder_name}/{sell_type.lower()}.sqlite")
+    cursor = conn.cursor()
+    cursor.execute(f'''CREATE TABLE IF NOT EXISTS {sell_type.lower()}s (username TEXT PRIMARY KEY, owner_id INTEGER, price TEXT, subscriber_count INTEGER)''')
+    cursor.execute(f'''INSERT OR REPLACE INTO {sell_type.lower()}s (username, owner_id, price, subscriber_count) VALUES (?, ?, ?, ?)''', (username, user_id, price, subscriber_count))
+    conn.commit()
+    conn.close()
 
+    user_data_path = f"data/users/{user_id}.sqlite"
+    conn = sqlite3.connect(user_data_path)
+    cursor = conn.cursor()
+    cursor.execute(f'''CREATE TABLE IF NOT EXISTS {sell_type.lower()}s (username TEXT PRIMARY KEY, price TEXT, subscriber_count INTEGER, owner_username TEXT)''')
+    
+    owner_username = get_owner_username(user_id)  # Function to retrieve the owner's username
+
+    cursor.execute(f'''INSERT OR REPLACE INTO {sell_type.lower()}s (username, price, subscriber_count, owner_username) VALUES (?, ?, ?, ?)''', (username, price, subscriber_count, owner_username))
+    conn.commit()
+    conn.close()
+
+    ensure_directory_exists("data/usernames")
+    conn = sqlite3.connect("data/usernames/usernames.sqlite")
+    cursor = conn.cursor()
+    cursor.execute('''CREATE TABLE IF NOT EXISTS usernames (username TEXT PRIMARY KEY, owner_id INTEGER, price TEXT, owner_username TEXT)''')
+    cursor.execute('''INSERT OR REPLACE INTO usernames (username, owner_id, price, owner_username) VALUES (?, ?, ?, ?)''', (username, user_id, price, owner_username))
+    conn.commit()
+    conn.close()
+
+def get_owner_username(user_id):
+    return "username"  
