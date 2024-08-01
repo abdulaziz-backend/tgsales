@@ -3,141 +3,145 @@ from aiogram.filters import Command
 from aiogram.types import Message, InlineKeyboardMarkup, InlineKeyboardButton, CallbackQuery
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
-from app.keyboards import get_choice_keyboard, get_edit_keyboard, get_edit_options_keyboard
-from data.data import save_user_to_file, save_channel_info, save_group_info, save_bot_info, get_user_info, edit_info, delete_info
-from app.utils import get_subscriber_count
+from app.keyboards import start, choose
+from app.utils import get_subscriber_count, is_owner
+from data.data import save_user_data, save_listing
 
 router = Router()
 
-class NewUsernameState(StatesGroup):
-    choice = State()
-    channel_username = State()
-    group_username = State()
-    bot_username = State()
-
-class EditUsernameState(StatesGroup):
-    choose_edit = State()
-    new_info = State()
+class SellState(StatesGroup):
+    waiting_for_type = State()
+    waiting_for_username = State()
+    waiting_for_price = State()
+    waiting_for_agreement = State()  # New state for terms of use agreement
 
 @router.message(Command("start"))
 async def start_command(message: Message, state: FSMContext):
-    await message.answer(
+    user_id = message.from_user.id
+    username = message.from_user.username or ""
+    save_user_data(user_id, username)
+    
+    greeting_message = (
         "👋 Welcome to Our Bot!\n\n"
-        "Easily buy or sell channels and groups with confidence. Trusted by 1,400 users, our bot has facilitated nearly 100 successful trades. "
-        "You can securely transact using TON, with $BLAZE support coming soon.\n\n"
-        "If you need assistance, simply send the /help command.",
-        reply_markup=get_choice_keyboard()
+        "👀 Easily buy or sell channels and groups with confidence. Trusted by 1,400 users, our bot has facilitated nearly 100 successful trades. "
+        "🔓 You can securely transact using TON, with $BLAZE support coming soon.\n\n"
+        "✨ If you need assistance, simply send the /help command.\n\n"
     )
-    await state.set_state(NewUsernameState.choice)
+    
+    terms_of_use = (
+        "📜 Terms of Use:\n\n"
+        "Failure to Transfer Ownership:\n"
+        "If you do not transfer ownership of your channel, group, or bot to the buyer after they have paid you, you will be fined 3 TON. "
+        "If this happens more than 3 times, you will be banned from using the bot and fined 10 TON. Failure to pay the fine will result in serious consequences.\n\n"
+        "Listing for Sale:\n"
+        "You must be the owner of a username, channel, group, or bot to list it for sale.\n\n"
+        "Getting Help:\n"
+        "If you need help, type the /help command.\n\n"
+        "🔒 Privacy and Security:\n"
+        "All transactions are secure and anonymous.\n\n"
+        "⚖️ Payment Terms:\n"
+        "A 15% commission fee is charged for every transaction.\n\n"
+        "By using this bot, you agree to these terms. Your security and convenience are our priority! 😊"
+    )
+    
+    inline_kb = InlineKeyboardMarkup(
+        inline_keyboard=[
+            [InlineKeyboardButton(text="Agree✅", callback_data="agree_terms")]
+        ]
+    )
+    await message.answer(greeting_message)
+    await message.answer(terms_of_use, reply_markup=inline_kb)
+    await state.set_state(SellState.waiting_for_agreement)
+
+@router.callback_query(SellState.waiting_for_agreement, lambda call: call.data == "agree_terms")
+async def handle_agreement(call: CallbackQuery, state: FSMContext):
+    await call.message.answer("Thank you for agreeing to the terms. You can now use the bot.", reply_markup=start())
+    await state.clear()
 
 @router.message(Command("help"))
 async def help_command(message: Message):
-    help_text = (
-        "/start - Welcome to Our Bot!\n"
-        "/help - Here is available commands:\n"
-        "/myusernames - View Your Listed Usernames\n"
-        "/newusername - List Your Channel or Group for Sale\n"
-        "/edit - Edit your channel/group info\n"
-        "/username - Browse Channels and Groups for Sale"
-    )
+    help_text = """
+    /start - Welcome to Our Bot!
+    /help - Here are the available commands:
+    
+    📜 Terms of Use:
+    📲 Telegram Bot for buying or selling channels, groups, and bots.
+    
+    Failure to Transfer Ownership:
+    If you do not transfer ownership of your channel, group, or bot to the buyer after they have paid you, you will be fined 3 TON.
+    If this happens more than 3 times, you will be banned from using the bot and fined 10 TON. Failure to pay the fine will result in serious consequences.
+    
+    Listing for Sale:
+    You must be the owner of a username, channel, group, or bot to list it for sale.
+    
+    Getting Help:
+    If you need help, type the /help command.
+    
+    🔒 Privacy and Security:
+    All transactions are secure and anonymous.
+    
+    ⚖️ Payment Terms:
+    A 15% commission fee is charged for every transaction.
+    
+    By using this bot, you agree to these terms. Your security and convenience are our priority! 😊
+    """
     await message.answer(help_text)
 
-@router.message(Command("myusernames"))
-async def myusernames_command(message: Message):
-    user_id = message.from_user.id
-    user_info = get_user_info(user_id)
+@router.message(lambda message: message.text == "🏷Sell Usernames")
+async def handle_sell_usernames(message: types.Message, state: FSMContext):
+    await message.answer("🆗 Choose the option to list your username on the market. Don’t forget! You can only sell if you are the owner of the group, channel, or bot. 🚀", reply_markup=choose())
+    await state.set_state(SellState.waiting_for_type)
+
+@router.message(SellState.waiting_for_type)
+async def handle_sell_type(message: types.Message, state: FSMContext):
+    sell_type = message.text
+    if sell_type not in ["Channel", "Group", "Bot"]:
+        await message.answer("Please choose a valid option: Channel, Group, or Bot.", reply_markup=choose())
+        return
     
-    if user_info:
-        await message.answer(user_info)
-    else:
-        await message.answer("You have not listed any usernames for sale.")
+    await state.update_data(sell_type=sell_type)
+    await message.answer(f"Please send the username of the {sell_type.lower()}.")
+    await state.set_state(SellState.waiting_for_username)
 
-@router.message(Command("newusername"))
-async def newusername_command(message: Message, state: FSMContext):
-    await message.answer("Please choose an option:", reply_markup=get_choice_keyboard())
-    await state.set_state(NewUsernameState.choice)
-
-@router.message(NewUsernameState.choice)
-async def handle_choice(message: Message, state: FSMContext):
-    choice = message.text
-
-    if choice == "Channel":
-        await message.answer("OK, Send me your channel username:")
-        await state.set_state(NewUsernameState.channel_username)
-    elif choice == "Group":
-        await message.answer("OK, Send me your group username:")
-        await state.set_state(NewUsernameState.group_username)
-    elif choice == "Bot":
-        await message.answer("OK, Send me your bot username:")
-        await state.set_state(NewUsernameState.bot_username)
-    else:
-        await message.answer("Invalid choice. Please choose 'Channel', 'Group' or 'Bot'.")
-
-@router.message(NewUsernameState.channel_username)
-async def handle_channel_username(message: Message, state: FSMContext):
+@router.message(SellState.waiting_for_username)
+async def handle_sell_username(message: types.Message, state: FSMContext, bot: Bot):
     username = message.text
-    subscriber_count = await get_subscriber_count(message.bot, username)
-
     user_id = message.from_user.id
-    save_channel_info(user_id, username, subscriber_count)
+    sell_type = (await state.get_data())['sell_type']
+    
+    if not await is_owner(username, user_id, bot):
+        await message.answer("You must be the owner of the group or channel to sell it.")
+        return
+    
+    subscriber_count = await get_subscriber_count(username, bot)
+    await state.update_data(username=username, subscriber_count=subscriber_count)
+    await message.answer("What is the price in TON?")
+    await state.set_state(SellState.waiting_for_price)
 
-    await message.answer("Your channel information has been saved.")
-    await state.finish()
-
-@router.message(NewUsernameState.group_username)
-async def handle_group_username(message: Message, state: FSMContext):
-    username = message.text
-    subscriber_count = await get_subscriber_count(message.bot, username)
-
+@router.message(SellState.waiting_for_price)
+async def handle_sell_price(message: types.Message, state: FSMContext):
+    price = message.text
+    if not price.isdigit():
+        await message.answer("Please enter a valid price.")
+        return
+    
+    await state.update_data(price=price)
+    user_data = await state.get_data()
+    sell_type = user_data['sell_type']
+    username = user_data['username']
+    subscriber_count = user_data['subscriber_count']
     user_id = message.from_user.id
-    save_group_info(user_id, username, subscriber_count)
+    
+    save_listing(sell_type, username, user_id, price, subscriber_count)
+    await message.answer(f"Your {sell_type.lower()} has been listed for sale at {price} TON.", reply_markup=start())
+    await state.clear()
 
-    await message.answer("Your group information has been saved.")
-    await state.finish()
 
-@router.message(NewUsernameState.bot_username)
-async def handle_bot_username(message: Message, state: FSMContext):
-    username = message.text
-    subscriber_count = await get_subscriber_count(message.bot, username)
-
-    user_id = message.from_user.id
-    save_bot_info(user_id, username, subscriber_count)
-
-    await message.answer("Your bot information has been saved.")
-    await state.finish()
-
-@router.message(Command("edit"))
-async def edit_command(message: Message):
-    user_id = message.from_user.id
-    user_info = get_user_info(user_id)
-
-    if user_info:
-        await message.answer("Please choose what you want to edit:", reply_markup=get_edit_options_keyboard(user_info))
-    else:
-        await message.answer("You have not listed any usernames for sale.")
-
-@router.callback_query(lambda c: c.data and c.data.startswith('edit_'))
-async def process_edit_callback(callback_query: CallbackQuery, state: FSMContext):
-    await callback_query.message.edit_reply_markup()
-    await state.update_data(edit_choice=callback_query.data[5:])
-    await callback_query.message.answer(f"OK, send me the new information for your {callback_query.data[5:]}:")
-    await state.set_state(EditUsernameState.new_info)
-
-@router.callback_query(lambda c: c.data and c.data.startswith('delete_'))
-async def process_delete_callback(callback_query: CallbackQuery):
-    user_id = callback_query.from_user.id
-    delete_choice = callback_query.data[7:]
-    delete_info(user_id, delete_choice)
-    await callback_query.message.answer(f"Your {delete_choice} has been deleted.")
-
-@router.message(EditUsernameState.new_info)
-async def handle_new_info(message: Message, state: FSMContext):
-    data = await state.get_data()
-    edit_choice = data.get("edit_choice")
-    new_info = message.text
-
-    user_id = message.from_user.id
-    edit_info(user_id, edit_choice, new_info)
-
-    await message.answer(f"Your {edit_choice} information has been updated.")
-    await state.finish()
+@router.message(lambda message: message.text == "📞Contact")
+async def contact(message: types.Message):
+    contact_message = (
+        "To connect with us, please visit the following links:\n\n"
+        "🌟 [Ablaze Coder](https://t.me/ablaze_coder)\n"
+        "✨ [Jalloliddin](https://t.me/darkweb_JF)"
+    )
+    await message.answer(contact_message, reply_markup=start())
