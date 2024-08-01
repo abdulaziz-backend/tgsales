@@ -1,34 +1,35 @@
-from aiogram.types import ReplyKeyboardMarkup, KeyboardButton, InlineKeyboardMarkup, InlineKeyboardButton
+from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton, ReplyKeyboardMarkup, KeyboardButton
 
-def get_choice_keyboard():
-    keyboard = ReplyKeyboardMarkup(
+def start():
+    return ReplyKeyboardMarkup(
         keyboard=[
-            [KeyboardButton(text="Channel")],
-            [KeyboardButton(text="Group")],
-            [KeyboardButton(text="Bot")]
+            [KeyboardButton(text="🏷Sell Usernames"), KeyboardButton(text="📊View Listings")],
+            [KeyboardButton(text="📞Contact"),
+             KeyboardButton(text="ℹ️Help")],
+            [KeyboardButton(text="💰My Balance")] 
         ],
         resize_keyboard=True
     )
-    return keyboard
 
-def get_edit_keyboard():
-    keyboard = ReplyKeyboardMarkup(
+def choose():
+    return ReplyKeyboardMarkup(
         keyboard=[
-            [KeyboardButton(text="Channel")],
-            [KeyboardButton(text="Group")],
-            [KeyboardButton(text="Bot")]
+            [KeyboardButton(text="Channel"), KeyboardButton(text="Group")],
+            [KeyboardButton(text="Bot")],
         ],
         resize_keyboard=True
     )
-    return keyboard
 
-def get_edit_options_keyboard(user_info):
-    inline_keyboard = InlineKeyboardMarkup(row_width=1)
-    for line in user_info.split('\n'):
-        if line:
-            info_type = line.split(' ')[0]
-            inline_keyboard.add(
-                InlineKeyboardButton(f"Edit {info_type}", callback_data=f"edit_{info_type.lower()}"),
-                InlineKeyboardButton(f"Delete {info_type}", callback_data=f"delete_{info_type.lower()}")
-            )
-    return inline_keyboard
+def agree_terms_button():
+    return InlineKeyboardMarkup(
+        inline_keyboard=[
+            [InlineKeyboardButton(text="Agree✅", callback_data="agree_terms")]
+        ]
+    )
+
+def check_admin_status_button():
+    return InlineKeyboardMarkup(
+        inline_keyboard=[
+            [InlineKeyboardButton(text="I've made the bot an admin", callback_data="check_admin_status")]
+        ]
+    )
