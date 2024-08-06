@@ -1,4 +1,4 @@
-from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton, ReplyKeyboardMarkup, KeyboardButton
+from aiogram.types import ReplyKeyboardMarkup, KeyboardButton, InlineKeyboardMarkup, InlineKeyboardButton
 
 def start():
     return ReplyKeyboardMarkup(
@@ -14,22 +14,31 @@ def start():
 def choose():
     return ReplyKeyboardMarkup(
         keyboard=[
-            [KeyboardButton(text="Channel"), KeyboardButton(text="Group")],
-            [KeyboardButton(text="Bot")],
+            [KeyboardButton(text="🗞Channel"), KeyboardButton(text="💬Group")],
+            [KeyboardButton(text="🤖Bot")],
         ],
         resize_keyboard=True
     )
 
-def agree_terms_button():
+def pricing_keyboard():
     return InlineKeyboardMarkup(
         inline_keyboard=[
-            [InlineKeyboardButton(text="Agree✅", callback_data="agree_terms")]
+            [InlineKeyboardButton(text="10 $BLAZE", callback_data="buy_blaze_10"),
+             InlineKeyboardButton(text="20 $BLAZE", callback_data="buy_blaze_20")],
+            [InlineKeyboardButton(text="50 $BLAZE", callback_data="buy_blaze_50"),
+             InlineKeyboardButton(text="100 $BLAZE", callback_data="buy_blaze_100")],
+            [InlineKeyboardButton(text="150 $BLAZE", callback_data="buy_blaze_150"),
+             InlineKeyboardButton(text="200 $BLAZE", callback_data="buy_blaze_200")]
         ]
     )
 
-def check_admin_status_button():
-    return InlineKeyboardMarkup(
-        inline_keyboard=[
-            [InlineKeyboardButton(text="I've made the bot an admin", callback_data="check_admin_status")]
-        ]
+def admin_keyboard():
+    return ReplyKeyboardMarkup(
+        keyboard=[
+            [KeyboardButton(text="Add Listing"), KeyboardButton(text="Remove Listing")],
+            [KeyboardButton(text="View All Listings"), KeyboardButton(text="Manage Users")],
+            [KeyboardButton(text="Back to Main Menu")]
+        ],
+        resize_keyboard=True
     )
+
