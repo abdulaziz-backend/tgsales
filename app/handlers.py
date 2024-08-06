@@ -1,11 +1,12 @@
-from aiogram import Router, types, Bot
+from aiogram import Router, types, Bot, F
 from aiogram.filters import Command
-from aiogram.types import Message, InlineKeyboardMarkup, InlineKeyboardButton, CallbackQuery
+from aiogram.types import Message, InlineKeyboardMarkup, InlineKeyboardButton, CallbackQuery, InputFile
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
-from app.keyboards import start, choose
-from app.utils import get_subscriber_count, is_owner
-from data.data import save_user_data, save_listing
+from aiogram.methods import GetUserProfilePhotos, SendPhoto
+from app.keyboards import start, choose, pricing_keyboard
+from app.utils import get_subscriber_count, is_owner, generate_random_code
+from data.data import save_user_data, save_listing, get_user_balance_and_orders, update_balance
 
 router = Router()
 
@@ -13,14 +14,14 @@ class SellState(StatesGroup):
     waiting_for_type = State()
     waiting_for_username = State()
     waiting_for_price = State()
-    waiting_for_agreement = State()  
+    waiting_for_agreement = State()
 
 @router.message(Command("start"))
 async def start_command(message: Message, state: FSMContext):
     user_id = message.from_user.id
     username = message.from_user.username or ""
     save_user_data(user_id, username)
-    
+
     greeting_message = (
         "👋 Welcome to Our Bot!\n\n"
         "👀 Easily buy or sell channels and groups with confidence. Trusted by 1,400 users, our bot has facilitated nearly 100 successful trades. "
@@ -49,7 +50,8 @@ async def start_command(message: Message, state: FSMContext):
             [InlineKeyboardButton(text="Agree✅", callback_data="agree_terms")]
         ]
     )
-    await message.answer(greeting_message)
+
+    await message.answer_photo(photo="https://i.ibb.co/7y4SRLB/pixelcut-export-22.png", caption=greeting_message)
     await message.answer(terms_of_use, reply_markup=inline_kb)
     await state.set_state(SellState.waiting_for_agreement)
 
@@ -61,8 +63,8 @@ async def handle_agreement(call: CallbackQuery, state: FSMContext):
 @router.message(Command("help"))
 async def help_command(message: Message):
     help_text = """
-    /start - Welcome to Our Bot!
-    /help - Here are the available commands:
+/start - Welcome to Our Bot!
+ /help - Here are the available commands:
     
     📜 Terms of Use:
     📲 Telegram Bot for buying or selling channels, groups, and bots.
@@ -110,19 +112,19 @@ async def handle_sell_username(message: types.Message, state: FSMContext, bot: B
     sell_type = (await state.get_data())['sell_type']
     
     if not await is_owner(username, user_id, bot):
-        await message.answer("You must be the owner of the group or channel to sell it.")
+        await message.answer("❌ You must be the owner of the group or channel to sell it❗️")
         return
     
     subscriber_count = await get_subscriber_count(username, bot)
     await state.update_data(username=username, subscriber_count=subscriber_count)
-    await message.answer("What is the price in TON?")
+    await message.answer("💴What is the price in $BLAZE?\n if you dont know see Your balance.")
     await state.set_state(SellState.waiting_for_price)
 
 @router.message(SellState.waiting_for_price)
 async def handle_sell_price(message: types.Message, state: FSMContext):
     price = message.text
     if not price.isdigit():
-        await message.answer("Please enter a valid price.")
+        await message.answer("❌ Please enter a valid price.")
         return
     
     await state.update_data(price=price)
@@ -136,7 +138,6 @@ async def handle_sell_price(message: types.Message, state: FSMContext):
     await message.answer(f"Your {sell_type.lower()} has been listed for sale at {price} TON.", reply_markup=start())
     await state.clear()
 
-
 @router.message(lambda message: message.text == "📞Contact")
 async def contact(message: types.Message):
     contact_message = (
@@ -145,3 +146,70 @@ async def contact(message: types.Message):
         "✨ [Jalloliddin](https://t.me/darkweb_JF)"
     )
     await message.answer(contact_message, reply_markup=start())
+
+@router.message(lambda message: message.text == "💰My Balance")
+async def my_balance(message: types.Message, bot: Bot):
+    user_id = message.from_user.id
+    balance, orders = get_user_balance_and_orders(user_id)
+    response = (
+        f"💳 Your balance:\n"
+        f"💲 Balance: {balance} $BLAZE\n"
+        f"🪪 Your ID: {user_id}\n"
+        f"👤 Username: @{message.from_user.username}\n"
+    )
+
+    photos = await bot(GetUserProfilePhotos(user_id=user_id))
+    if photos.total_count > 0:
+        photo = photos.photos[0][0].file_id
+        await message.answer_photo(photo=photo, caption=response, reply_markup=pricing_keyboard())
+    else:
+        await message.answer(response, reply_markup=pricing_keyboard())
+
+@router.callback_query(lambda call: call.data.startswith("buy_blaze_"))
+async def handle_pricing_choice(call: CallbackQuery):
+    user_id = call.from_user.id
+    amount_map = {
+        "buy_blaze_10": 5,
+        "buy_blaze_20": 10,
+        "buy_blaze_50": 25,
+        "buy_blaze_100": 50,
+        "buy_blaze_150": 75,
+        "buy_blaze_200": 100
+    }
+    amount = amount_map[call.data]
+    random_code = generate_random_code()
+    response = (
+        f" Amount :  {amount} TON💎 \n Add this word as a comment - {random_code}\n "
+        f"‼️ If you don't add this, you can't top up your balance.\n\n"
+        f"👛Wallet address: `adress`\n\n"
+    )
+    await call.message.answer(response)
+
+@router.message(F.text == "ℹ️Help")
+async def show_help(message: Message):
+    help_text = """
+Welcome to the $BLAZE Marketplace Bot! 🚀
+
+You can use this bot to buy or sell Telegram channels, groups, and bots with complete security and anonymity.
+
+How to Get Started:
+Top Up Your Balance:
+To buy any channel, group, or bot, you need to top up your balance.
+
+Currency: $BLAZE
+Exchange Rate: 1 $BLAZE = 0.5 TONs
+Buying:
+
+Browse available listings.
+Choose what you want to purchase.
+Complete the transaction using your $BLAZE balance.
+Selling:
+
+List your channel, group, or bot for sale.
+Wait for interested buyers.
+Finalize the sale securely.
+Commands:
+/start - start bot.
+/help - Get this help message.
+If you have any questions or need assistance, feel free to contact support!"""
+    await message.answer(help_text)
