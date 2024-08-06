@@ -1,29 +1,21 @@
+import random
+import string
 from aiogram import Bot
-from aiogram.exceptions import TelegramAPIError
 
-async def get_subscriber_count(bot: Bot, username: str) -> int:
+async def is_owner(username, user_id, bot: Bot):
     try:
         chat = await bot.get_chat(username)
-        return chat.members_count if hasattr(chat, 'members_count') else 0
-    except TelegramAPIError as e:
-        print(f"Failed to get subscriber count: {e}")
+        member = await bot.get_chat_member(chat.id, user_id)
+        return member.is_chat_owner()
+    except:
+        return False
+
+async def get_subscriber_count(username, bot: Bot):
+    try:
+        chat = await bot.get_chat(username)
+        return chat.get('members_count', 0)
+    except:
         return 0
 
-async def is_owner(bot: Bot, username: str, user_id: int) -> bool:
-    try:
-        chat_member = await bot.get_chat_member(username, user_id)
-        return chat_member.status == 'creator'
-    except TelegramAPIError as e:
-        print(f"Failed to check ownership: {e}")
-        return False
-
-
-
-#===============SHETTA getr_chat_member da qandaydir xatolik beryapti, togirlay olmadim===========================#
-async def is_bot_admin(bot: Bot, username: str) -> bool:
-    try:
-        chat_member = await bot.get_chat_member(username, bot.id)
-        return chat_member.status in ['administrator', 'creator']
-    except TelegramAPIError as e:
-        print(f"Failed to check bot admin status: {e}")
-        return False
+def generate_random_code(length=4):
+    return ''.join(random.choices(string.ascii_uppercase + string.digits, k=length))
