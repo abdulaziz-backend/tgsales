@@ -53,6 +53,7 @@ def save_listing(sell_type, username, owner_id, price, subscriber_count):
     conn.close()
 
 def get_user_balance_and_orders(user_id):
+
     conn = sqlite3.connect('transactions.sqlite')
     cursor = conn.cursor()
     cursor.execute('''
