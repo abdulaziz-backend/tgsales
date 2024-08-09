@@ -7,6 +7,10 @@ from aiogram.methods import GetUserProfilePhotos, SendPhoto
 from app.keyboards import start, choose, pricing_keyboard
 from app.utils import get_subscriber_count, is_owner, generate_random_code
 from data.data import save_user_data, save_listing, get_user_balance_and_orders, update_balance
+from data.data import get_user_balance_and_orders, save_user_data, save_listing
+from app.transacts import save_transaction, verify_and_update_balance, send_ton_transaction
+
+from app.transacts import save_transaction, verify_and_update_balance
 
 router = Router()
 
@@ -178,12 +182,26 @@ async def handle_pricing_choice(call: CallbackQuery):
     }
     amount = amount_map[call.data]
     random_code = generate_random_code()
+    await save_transaction(user_id, random_code, amount)
+    MY_WALLET_ADDRESS="UQCNeLkssvBYoENt5FGF9tpZEv7gM2Ivxl9TwONmf_AJdO3V"
     response = (
-        f" Amount :  {amount} TON💎 \n Add this word as a comment - {random_code}\n "
-        f"‼️ If you don't add this, you can't top up your balance.\n\n"
-        f"👛Wallet address: `adress`\n\n"
+        f" Amount: {amount} TON💎\n"
+        f" Add this code as a comment: {random_code}\n"
+        f"👛 Wallet address: `{MY_WALLET_ADDRESS}`\n\n"
+        f"‼️ Please add the comment, or your transaction cannot be processed."
     )
-    await call.message.answer(response)
+    await call.message.answer(response, reply_markup=start())
+
+    transaction_hash = await send_ton_transaction(amount, random_code)
+    
+    if transaction_hash:
+        verified = await verify_and_update_balance(transaction_hash, user_id, amount)
+        if verified:
+            await call.message.answer("✅ Payment verified, your balance has been updated.", reply_markup=start())
+        else:
+            await call.message.answer("❌ Payment could not be verified. Please wait for verifing if you send TON  or try again.", reply_markup=start())
+    else:
+        await call.message.answer("❌ Transaction failed. Please try again or wait for verifing", reply_markup=start())
 
 @router.message(F.text == "ℹ️Help")
 async def show_help(message: Message):
@@ -203,6 +221,8 @@ Buying:
 Browse available listings.
 Choose what you want to purchase.
 Complete the transaction using your $BLAZE balance.
+
+if you get this messages dont worry:
 Selling:
 
 List your channel, group, or bot for sale.
@@ -213,3 +233,5 @@ Commands:
 /help - Get this help message.
 If you have any questions or need assistance, feel free to contact support!"""
     await message.answer(help_text)
+
+
